@@ -21,6 +21,7 @@
 | `07-flash-rootfs-ssh.sh` | обход, если `06` оборвался на `system.img` | **да, в initrd** | **да** |
 | `08-build-base-image.sh` | базовый образ диска (`.img` + `.qcow2`) для тиражирования на флот | нет | **да** |
 | `09-build-jetson-base.sh` | оркестратор: `01`→`02`→`03`→`04 -U`→`08`→`bs image import` | нет | **да** |
+| `10-flash-internal.sh` | выборочно: только QSPI, либо QSPI + eMMC | **в recovery** | **да** |
 | `90-install-sdkmanager.sh` | NVIDIA SDK Manager (по желанию) | нет | **да** |
 
 Шаги `05`–`07` прошивают **одну** плату через USB-кабель. Шаг `08` стоит

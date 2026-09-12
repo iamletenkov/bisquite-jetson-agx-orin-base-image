@@ -68,6 +68,14 @@ flash: ## [station] прошить плату кабелем: QSPI + разме�
 flash-rootfs: ## [station] перезалить только rootfs на уже прошитой плате
 	sudo -E WORK=$(WORK) scripts/07-flash-rootfs-ssh.sh
 
+.PHONY: flash-qspi
+flash-qspi: ## [station] ТОЛЬКО загрузчик в QSPI, носители не трогать (НЕОБРАТИМО)
+	sudo -E WORK=$(WORK) scripts/10-flash-internal.sh --target qspi
+
+.PHONY: flash-emmc
+flash-emmc: ## [station] QSPI + rootfs во внутреннюю eMMC (НЕОБРАТИМО)
+	sudo -E WORK=$(WORK) scripts/10-flash-internal.sh --target emmc
+
 # --- Образы bisquite (arm64) --------------------------------------------------
 
 .PHONY: camera
