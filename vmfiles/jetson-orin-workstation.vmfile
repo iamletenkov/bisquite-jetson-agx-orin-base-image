@@ -23,6 +23,31 @@ LABEL jetson.board=p3701-0000
 LABEL jetson.carrier=p3737-0000
 LABEL jetson.jetpack=6.2
 
+# БАЗОВЫЙ ИНСТРУМЕНТАРИЙ. Тот же набор, что несёт образ станции прошивки
+# (репозиторий bisquite, examples/build/amd64/ubuntu2204/) — чтобы на роботе под
+# рукой было то же, к чему привык оператор на станции.
+#
+# Замер на прошитой плате 2026-09-12: базовый образ L4T не несёт ни nano,
+# ни htop, ни mc, ни tree, ни dos2unix, ни cmake, ни dkms, ни apache2-utils.
+# Это sample rootfs NVIDIA, а не облачный образ Ubuntu, и «обычные»
+# утилиты там не подразумеваются.
+#
+# Здесь, а не в jetson-orin-camera.vmfile: слой камер остаётся тонким,
+# и правка требует пересборки одного образа, а не двух. Понадобится тот же
+# набор безголовому роботу — перенести строку ниже по цепочке.
+#
+# dkms, module-assistant и build-essential — не «на всякий случай»: сборка
+# модулей ядра на месте это единственный путь, когда драйвер приходит
+# исходниками, а кросс-компилировать под L4T негде.
+RUN_COMMAND apt-get update
+RUN_COMMAND apt-get install -y \
+            sudo curl wget nano vim htop git \
+            mc net-tools usbutils xz-utils tree \
+            libcairo2-dev dos2unix bc module-assistant \
+            pkg-config gcc build-essential \
+            cmake make dkms ca-certificates g++ apache2-utils \
+            libgl1 libnss3-tools
+
 # CUDA и TensorRT — тяжёлые (десятки минут под эмуляцией, единицы гигабайт
 # в образе), поэтому в отдельном слое поверх camera-базы, а не в ней самой:
 # не каждому роботу с этими камерами нужен инференс на месте.
