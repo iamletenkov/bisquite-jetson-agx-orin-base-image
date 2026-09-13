@@ -122,8 +122,29 @@ devices:
         # опередить его. Файл к тому моменту уже правильный, и служба
         # прочитает его сама при старте.
         #
-        # - "sed -i 's/^X11VNC_LISTEN=.*/X11VNC_LISTEN=all/' /etc/default/bisquite-x11vnc"
-        # - "systemctl restart x11vnc@robot || true"
+        # ⚠️ Ниже — ОТКРЫТИЕ НАРУЖУ. Всё это включено осознанно для стенда;
+        # для робота в поле каждую строку надо пересмотреть отдельно.
+
+        # SSH по паролю. cloud-init и так ставит ssh_pwauth: true, но
+        # в образе может лежать своё правило в sshd_config.d — оно
+        # сильнее. Дописываем явно и перезапускаем sshd.
+        - "printf 'PasswordAuthentication yes\nKbdInteractiveAuthentication yes\n' > /etc/ssh/sshd_config.d/99-bisquite-password-auth.conf"
+        - "systemctl restart ssh || true"
+
+        # VNC на все интерфейсы. В образе x11vnc слушает петлю — это
+        # умолчание тиража; открывает конкретный носитель вот эта строка.
+        # `|| true` не про небрежность: служба поднимается
+        # по graphical.target и может стартовать позже cloud-init, но файл
+        # к тому моменту уже правильный, и она прочитает его сама.
+        - "sed -i 's/^X11VNC_LISTEN=.*/X11VNC_LISTEN=all/' /etc/default/bisquite-x11vnc"
+        - "systemctl restart x11vnc@robot || true"
+
+        # code-server на все интерфейсы. Пароля у него нет (в образе
+        # CODE_SERVER_PASSWORD=none), поэтому строка ниже открывает
+        # редактор с шеллом всей сети. Для стенда приемлемо, для поля —
+        # задавай пароль в config.yaml перед тем, как это включать.
+        - "sed -i 's/^bind-addr:.*/bind-addr: 0.0.0.0:9002/' /home/robot/.config/code-server/config.yaml || true"
+        - "systemctl restart code-server@robot || true"
 
       # Раздел cidata. Умолчание `new-partition` здесь верное: образ
       # несёт `INSTALL cloud-init` плюс расширение `nocloud-cidata`,
