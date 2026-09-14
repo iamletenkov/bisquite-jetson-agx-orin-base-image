@@ -53,9 +53,11 @@ devices:
         # ⚠️ Ниже — открытие наружу, для стенда. Для робота в поле
         # пересмотрите каждую строку: VNC и code-server здесь без пароля.
 
-        # SSH по паролю. Кавычки YAML одинарные: в двойных \n стал бы
-        # переводом строки ещё до printf.
-        - 'printf ''PasswordAuthentication yes\nKbdInteractiveAuthentication yes\n'' > /etc/ssh/sshd_config.d/99-bisquite-password-auth.conf'
+        # SSH по паролю. Блок `>-` склеивает строки через пробел и не знает
+        # экранирования: \n доходит до printf как есть.
+        - >-
+          printf 'PasswordAuthentication yes\nKbdInteractiveAuthentication yes\n'
+          > /etc/ssh/sshd_config.d/99-bisquite-password-auth.conf
         - "systemctl restart ssh || true"
 
         # VNC на все интерфейсы. Пароль — строкой X11VNC_PASSWORD=<пароль>
@@ -66,7 +68,10 @@ devices:
         # Selkies на все интерфейсы: https://<робот>:6900, БЕЗ ПАРОЛЯ — рабочий
         # стол, буфер, файлы и API команд любому в сети. Без ручки
         # BISQUITE_SELKIES_ALLOW_NO_AUTH обёртка на адресе не петли не стартует.
-        - "sed -i -e 's/^SELKIES_ADDR=.*/SELKIES_ADDR=0.0.0.0/' -e 's/^BISQUITE_SELKIES_ALLOW_NO_AUTH=.*/BISQUITE_SELKIES_ALLOW_NO_AUTH=true/' /etc/bisquite/selkies/config"
+        - >-
+          sed -i
+          -e 's/^SELKIES_ADDR=.*/SELKIES_ADDR=0.0.0.0/'
+          -e 's/^BISQUITE_SELKIES_ALLOW_NO_AUTH=.*/BISQUITE_SELKIES_ALLOW_NO_AUTH=true/' /etc/bisquite/selkies/config
         - "systemctl restart 'selkies@*' || true"
 
         # code-server на все интерфейсы. Правится файл из образа, а не
@@ -79,7 +84,12 @@ devices:
         # `tctl tokens add --type=node,app --ttl=<до первой загрузки>`. Токен
         # со stdin — не в argv; после регистрации стирается из конфига.
         # Seed с токеном стоит стереть: seed-cleanup: wipe-after-first-boot.
-        - "echo '********' | bisquite-teleport join TELEPORT_PROXY=teleport.example.org TELEPORT_TOKEN=- TELEPORT_ENV=dst"
+        - >-
+          echo '********'
+          | bisquite-teleport join
+          TELEPORT_PROXY=teleport.example.org
+          TELEPORT_TOKEN=-
+          TELEPORT_ENV=dst
 
       # Seed остаётся на носителе: NoCloud читает его на каждой загрузке.
       partition:
