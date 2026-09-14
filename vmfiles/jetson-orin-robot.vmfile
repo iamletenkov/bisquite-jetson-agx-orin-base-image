@@ -8,7 +8,7 @@ FROM jetson-orin-base:36.4.3 AS jetson-orin-robot:36.4.3
 LABEL os=l4t
 LABEL arch=arm64
 LABEL version=r36.4.3
-LABEL description="AGX Orin + Sensing GMSL2: jetson-orin-base + GNOME, VNC, code-server, btop, Docker"
+LABEL description="AGX Orin + Sensing GMSL2: jetson-orin-base + GNOME, VNC, Selkies, code-server, btop, Docker"
 LABEL jetson.board=p3701-0000
 LABEL jetson.carrier=p3737-0000
 LABEL jetson.jetpack=6.2
@@ -33,6 +33,11 @@ EXTENSION code-server CODE_SERVER_PORT=9002 CODE_SERVER_PASSWORD=none \
 EXTENSION wallpaper WALLPAPER_IMAGE=images/dst_1080.jpg
 
 EXTENSION docker
+
+# Тот же рабочий стол в браузере: WebSocket на 127.0.0.1:8080, для веб-приложения
+# Teleport или ssh -L 8080:127.0.0.1:8080. Нужен автологин (FIRSTBOOT_COMMAND ниже).
+# +1.7 ГБ; кодирование программное (~2 ядра на 1080p).
+EXTENSION selkies
 
 # Браузера нет намеренно: Chromium на arm64 есть только снапом, а он
 # доустанавливается на первой загрузке по сети. Если нужен — apt на
