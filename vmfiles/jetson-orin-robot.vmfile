@@ -15,9 +15,9 @@ LABEL jetson.jetpack=6.2
 
 EXTENSION btop
 
-# GNOME с автологином под пользователем cloud-init.
+# GNOME (X11). cloud-user-desktop не нужен: в rootfs из BSP нет вендорской
+# учётки, а группы и автологин на пользователя cloud-init делает сам gnome.
 EXTENSION gnome
-EXTENSION cloud-user-desktop
 
 # x11vnc, а не vino: настройка — файл /etc/default/bisquite-x11vnc, его
 # можно править из манифеста записи и на работающей машине; у vino — dconf
@@ -37,5 +37,9 @@ EXTENSION docker
 # Браузера нет намеренно: Chromium на arm64 есть только снапом, а он
 # доустанавливается на первой загрузке по сети. Если нужен — apt на
 # сборке: epiphany-browser или falkon.
+
+# Рабочий стол всегда на экране: вход без пароля, без автоблокировки
+# и затемнения. Ручки bisquite-desktop, в расширении по умолчанию выключены.
+FIRSTBOOT_COMMAND "bisquite-desktop set DESKTOP_AUTOLOGIN=1 DESKTOP_DISABLE_SCREEN_LOCK=1 DESKTOP_DISABLE_SCREEN_BLANK=1"
 
 FIRSTBOOT_COMMAND "ssh-keygen -A && systemctl restart ssh || true"
