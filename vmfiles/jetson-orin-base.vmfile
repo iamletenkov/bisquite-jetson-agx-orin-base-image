@@ -8,7 +8,7 @@
 # компиляцию torchvision:
 #     bs image build --smp 8 --memsize 16000 -f jetson-orin-base.vmfile --tag jetson-orin-base:36.4.3
 # Разбор цепочки — README.md этого репозитория; образ BSP — make bsp.
-FROM jetson-orin-bsp:36.4.3 AS jetson-orin-base:36.4.3
+FROM jetson-orin-bsp:36.4.3
 
 LABEL os=l4t
 LABEL arch=arm64

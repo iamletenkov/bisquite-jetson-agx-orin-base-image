@@ -3,7 +3,7 @@
 # Собирается только на arm64. Первая загрузка не требует сети: расширения
 # с фазой firstboot лишь доводят настройку до пользователя cloud-init.
 # Добавляя слой, проверь его configure.sh на это свойство.
-FROM jetson-orin-base:36.4.3 AS jetson-orin-robot:36.4.3
+FROM jetson-orin-base:36.4.3
 
 LABEL os=l4t
 LABEL arch=arm64
