@@ -63,12 +63,6 @@ devices:
         - "sed -i 's/^X11VNC_LISTEN=.*/X11VNC_LISTEN=all/' /etc/bisquite/x11vnc/config"
         - "systemctl restart x11vnc@robot || true"
 
-        # Teleport: адрес кластера, env (право доступа: tpEnv в LDAP) и токен
-        # `tctl tokens add --type=node,app --ttl=<до первой загрузки>`. Токен
-        # со stdin — не в argv; после регистрации стирается из конфига.
-        # Seed с токеном стоит стереть: seed-cleanup: wipe-after-first-boot.
-        - "echo '********' | bisquite-teleport join TELEPORT_PROXY=teleport.example.org TELEPORT_TOKEN=- TELEPORT_ENV=dst"
-
         # Selkies на все интерфейсы: https://<робот>:6900, БЕЗ ПАРОЛЯ — рабочий
         # стол, буфер, файлы и API команд любому в сети. Без ручки
         # BISQUITE_SELKIES_ALLOW_NO_AUTH обёртка на адресе не петли не стартует.
@@ -79,6 +73,13 @@ devices:
         # ~/.config/code-server: его служба создаёт позже этих команд
         # (After=cloud-final), и sed туда бьёт мимо.
         - "sed -i 's/^BIND:.*/BIND: 0.0.0.0/' /opt/vmsetup/code-server/config.yaml"
+
+        # Последним: join ждёт регистрации до 2 мин, остальное к этому времени настроено.
+        # Teleport: адрес кластера, env (право доступа: tpEnv в LDAP) и токен
+        # `tctl tokens add --type=node,app --ttl=<до первой загрузки>`. Токен
+        # со stdin — не в argv; после регистрации стирается из конфига.
+        # Seed с токеном стоит стереть: seed-cleanup: wipe-after-first-boot.
+        - "echo '********' | bisquite-teleport join TELEPORT_PROXY=teleport.example.org TELEPORT_TOKEN=- TELEPORT_ENV=dst"
 
       # Seed остаётся на носителе: NoCloud читает его на каждой загрузке.
       partition:
