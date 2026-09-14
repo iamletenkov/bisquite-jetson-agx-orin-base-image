@@ -1,0 +1,76 @@
+# AGX Orin + Sensing SG8A-AGON-G2Y-A1: основной образ робота (без экрана).
+#
+#   jetson-orin-bsp:36.4.3    rootfs из BSP NVIDIA: 08-build-base-image.sh + bs image import
+#   jetson-orin-base:36.4.3   этот файл — камеры, CUDA, TensorRT, GStreamer, OpenCV, PyTorch
+#   jetson-orin-robot:36.4.3  поверх — рабочий стол, VNC, code-server, Docker
+#
+# Собирается только на arm64 (слои с кодом в госте). Нужны ресурсы под
+# компиляцию torchvision:
+#     bs image build --smp 8 --memsize 16000 -f jetson-orin-base.vmfile --tag jetson-orin-base:36.4.3
+# Разбор цепочки — README.md этого репозитория; образ BSP — make bsp.
+FROM jetson-orin-bsp:36.4.3 AS jetson-orin-base:36.4.3
+
+LABEL os=l4t
+LABEL arch=arm64
+LABEL version=r36.4.3
+LABEL description="AGX Orin + Sensing GMSL2 (SG8A-AGON-G2Y-A1): камеры, видеокодек, CUDA, TensorRT, OpenCV, PyTorch, jtop — без рабочего стола"
+LABEL jetson.board=p3701-0000
+LABEL jetson.carrier=p3737-0000
+LABEL jetson.jetpack=6.2
+
+# Первым: у образа BSP ~180 МБ свободного места, любой слой ниже упал бы
+# на "No space left on device". 40G — под всю цепочку (robot — 24.3 ГБ).
+# idx=1 — раздел APP; root=PARTUUID при растяжении не меняется.
+RESIZE size=40G device=/dev/sda idx=1
+
+# Утилиты оператора — в sample rootfs NVIDIA их нет. Первым слоем с кодом:
+# git, curl, build-essential и dkms нужны слоям ниже.
+RUN_COMMAND apt-get update
+RUN_COMMAND apt-get install -y \
+            sudo curl wget nano vim htop git tmux \
+            mc net-tools usbutils xz-utils tree \
+            libcairo2-dev dos2unix bc module-assistant \
+            pkg-config gcc build-essential \
+            cmake make dkms ca-certificates g++ apache2-utils \
+            libgl1 libnss3-tools
+
+# cloud-init с источником на метке cidata — без него секция cloud-init
+# манифеста записи молча не применится.
+INSTALL cloud-init
+EXTENSION nocloud-cidata
+
+# Ядро и модули Sensing, DTB-оверлей, запуск камер на каждой загрузке.
+EXTENSION sensing-gmsl2-camera
+
+EXTENSION cuda-toolkit
+EXTENSION tensorrt
+
+# Аппаратный кодек (nvv4l2h26xenc, nvvidconv), RTSP, WebRTC, python3-gst
+# и заголовки (~460 МБ, в основном OpenCV 4.5.4 из зависимостей -dev).
+EXTENSION l4t-gstreamer
+
+# cv2 4.8.0 от NVIDIA: с GStreamer, без CUDA.
+EXTENSION l4t-opencv
+
+# torch 2.5.0 + torchvision 0.20.0 (собирается здесь, с CUDA); numpy 1.26.4.
+EXTENSION l4t-pytorch
+
+# TensorFlow 2.16.1 — последняя сборка NVIDIA под Jetson, +1.9 ГБ.
+# EXTENSION l4t-tensorflow
+
+EXTENSION jetson-stats
+
+# Вендорская служба обновляет загрузчик в QSPI из запущенной системы и,
+# неверно опознав внешний диск, дважды делала плату незагружаемой
+# (2026-09-13, лечилось только прошивкой QSPI со станции). QSPI шьётся
+# станцией, не системой. `systemctl mask` внутри сборки не работает —
+# маскируем руками.
+RUN_COMMAND rm -f /etc/systemd/system/multi-user.target.wants/nv-l4t-bootloader-config.service && ln -sf /dev/null /etc/systemd/system/nv-l4t-bootloader-config.service
+
+# Без выставленного режима питания jtop падает в цикле. MAXN (0), а не 2:
+# переход в режим с другим числом ядер требует перезагрузки и спрашивает
+# подтверждение, которого на первой загрузке дать некому.
+FIRSTBOOT_COMMAND "nvpmodel -m 0 || true"
+
+# virt-sysprep удаляет host-ключи; без них sshd не стартует.
+FIRSTBOOT_COMMAND "ssh-keygen -A && systemctl restart ssh || true"

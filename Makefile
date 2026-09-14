@@ -2,7 +2,7 @@
 #
 # ДВЕ ПОЛОВИНЫ, И ОНИ ЗАПУСКАЮТСЯ НА РАЗНЫХ МАШИНАХ.
 #
-#   base-*       — станция прошивки, amd64 + Ubuntu 22.04 (jammy).
+#   bsp*         — станция прошивки, amd64 + Ubuntu 22.04 (jammy).
 #                  Собирает классический образ из BSP: на выходе и .img
 #                  для обычной прошивки, и .qcow2 для bisquite.
 #   image-*      — arm64-хост (сам Jetson). Слои VMFILE выполняют код
@@ -17,12 +17,15 @@ SHELL := /bin/bash
 # Рабочий каталог сценариев 01-09. Тот же умолчательный путь, что у них.
 WORK ?= /srv/jetson
 
-# Тег базового образа в хранилище bisquite. Версия в теге — версия L4T,
-# а не наша: образ целиком определяется BSP, из которого собран.
+# Теги в хранилище bisquite. Версия в теге — версия L4T, а не наша: образы
+# целиком определяются BSP, из которого собраны.
+#   BSP_TAG    образ из BSP (scripts/09 + bs image import)
+#   BASE_TAG   основной образ робота, vmfiles/jetson-orin-base.vmfile
+#   ROBOT_TAG  робот с рабочим столом, vmfiles/jetson-orin-robot.vmfile
+BSP_TAG       ?= jetson-orin-bsp:36.4.3
 BASE_TAG      ?= jetson-orin-base:36.4.3
-CAMERA_TAG    ?= jetson-orin-camera:36.4.3
-WORKSTATION_TAG ?= jetson-orin-workstation:36.4.3
-# Ресурсы appliance virt-customize для рабочей станции: l4t-pytorch
+ROBOT_TAG     ?= jetson-orin-robot:36.4.3
+# Ресурсы appliance virt-customize для основного образа: l4t-pytorch
 # компилирует torchvision с CUDA внутри сборки, а умолчание bisquite —
 # 1 vCPU и 2 ГБ. 8 и 20000 — замер 2026-09-14 на AGX Orin: слой за 496 с.
 BUILD_SMP     ?= 8
@@ -38,20 +41,20 @@ help: ## показать эту справку
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 		| awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-18s\033[0m %s\n",$$1,$$2}'
 	@echo
-	@echo "Переменные: WORK=$(WORK)  BASE_TAG=$(BASE_TAG)"
+	@echo "Переменные: WORK=$(WORK)  BSP_TAG=$(BSP_TAG)  BASE_TAG=$(BASE_TAG)  ROBOT_TAG=$(ROBOT_TAG)"
 
 # --- Станция прошивки (amd64, jammy) ----------------------------------------
 
-.PHONY: base
-base: ## [station] весь путь от BSP до базового образа в хранилище bisquite
-	sudo -E WORK=$(WORK) scripts/09-build-jetson-base.sh -t $(BASE_TAG)
+.PHONY: bsp
+bsp: ## [station] весь путь от BSP до образа jetson-orin-bsp в хранилище bisquite
+	sudo -E WORK=$(WORK) scripts/09-build-jetson-base.sh -t $(BSP_TAG)
 
-.PHONY: base-fresh
-base-fresh: ## [station] то же, но с пересборкой дерева BSP с нуля
-	sudo -E WORK=$(WORK) scripts/09-build-jetson-base.sh --fresh -t $(BASE_TAG)
+.PHONY: bsp-fresh
+bsp-fresh: ## [station] то же, но с пересборкой дерева BSP с нуля
+	sudo -E WORK=$(WORK) scripts/09-build-jetson-base.sh --fresh -t $(BSP_TAG)
 
-.PHONY: base-image-only
-base-image-only: ## [station] только шаг 08: .img и .qcow2 из готового дерева
+.PHONY: bsp-image-only
+bsp-image-only: ## [station] только шаг 08: .img и .qcow2 из готового дерева
 	sudo -E WORK=$(WORK) scripts/08-build-base-image.sh
 
 .PHONY: fetch
@@ -83,16 +86,16 @@ flash-emmc: ## [station] QSPI + rootfs во внутреннюю eMMC (НЕОБ�
 
 # --- Образы bisquite (arm64) --------------------------------------------------
 
-.PHONY: camera
-camera: ## [board] слой камер Sensing GMSL2 + cloud-init поверх базового
-	$(BS) image build -f vmfiles/jetson-orin-camera.vmfile --tag $(CAMERA_TAG)
+.PHONY: base
+base: ## [board] основной образ: камеры, CUDA, TensorRT, GStreamer, OpenCV, PyTorch поверх BSP
+	$(BS) image build --smp $(BUILD_SMP) --memsize $(BUILD_MEMSIZE) -f vmfiles/jetson-orin-base.vmfile --tag $(BASE_TAG)
 
-.PHONY: workstation
-workstation: ## [board] рабочая станция робота поверх слоя камер
-	$(BS) image build --smp $(BUILD_SMP) --memsize $(BUILD_MEMSIZE) -f vmfiles/jetson-orin-workstation.vmfile --tag $(WORKSTATION_TAG)
+.PHONY: robot
+robot: ## [board] робот с рабочим столом, VNC, code-server и Docker поверх основного
+	$(BS) image build -f vmfiles/jetson-orin-robot.vmfile --tag $(ROBOT_TAG)
 
 .PHONY: images
-images: camera workstation ## [board] оба образа подряд
+images: base robot ## [board] оба образа подряд
 
 # --- Проверки -----------------------------------------------------------------
 

@@ -58,8 +58,8 @@ BOARD_SKU="${BOARD_SKU:-0000}"
 # то, какое имя устройства он впишет в root= (USB -> /dev/sda1), а мы это
 # значение всё равно заменяем на PARTUUID — см. шаг 4 ниже.
 ROOTFS_DEV="${ROOTFS_DEV:-USB}"
-OUT_RAW="${OUT_RAW:-$WORK/jetson-orin-base.img}"
-OUT_QCOW2="${OUT_QCOW2:-$WORK/jetson-orin-base.qcow2}"
+OUT_RAW="${OUT_RAW:-$WORK/jetson-orin-bsp.img}"
+OUT_QCOW2="${OUT_QCOW2:-$WORK/jetson-orin-bsp.qcow2}"
 MIN_FREE_GIB="${MIN_FREE_GIB:-30}"
 
 CREATOR="$LFT/tools/jetson-disk-image-creator.sh"
@@ -286,11 +286,11 @@ step "ГОТОВО"
 cat <<HINT
 Базовый образ собран. Дальше — в хранилище bisquite:
 
-  bs image import $OUT_QCOW2 --tag jetson-orin-base:36.4.3
+  bs image import $OUT_QCOW2 --tag jetson-orin-bsp:36.4.3
 
 и поверх него обычный VMFILE:
 
-  FROM jetson-orin-base:36.4.3
+  FROM jetson-orin-bsp:36.4.3
   LABEL arch=arm64
 
 Проверить образ до записи:

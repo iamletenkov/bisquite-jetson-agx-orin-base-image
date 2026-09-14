@@ -1,7 +1,7 @@
 #!/bin/bash
 # Шаг 9: ОДНА команда от сырого BSP до образа, зарегистрированного в bisquite.
 #
-#     sudo /opt/nvidia-jetpack/09-build-jetson-base.sh --fresh -t jetson-orin-base:36.4.3
+#     sudo /opt/nvidia-jetpack/09-build-jetson-base.sh --fresh -t jetson-orin-bsp:36.4.3
 #
 # Ничего нового не делает — вызывает по порядку 01, 02, 03, 04 (с -U) и 08,
 # затем `bs image import`. Каждый шаг сохраняет свои гарантии и свою
@@ -41,7 +41,7 @@ usage() {
            04 создавал пользователя — см. комментарий в шапке файла).
            Без флага переиспользуется то, что уже лежит в $WORK.
   -t       тег, под которым результат ляжет в хранилище bisquite
-           (обязательно, например jetson-orin-base:36.4.3)
+           (обязательно, например jetson-orin-bsp:36.4.3)
   -n       имя хоста в /etc/hostname образа (необязательно)
 
 Переменные окружения — те же, что читают 01-08: WORK, CAMERA_SRC,
@@ -126,7 +126,7 @@ step "6. 08-build-base-image.sh — образ диска, PARTUUID, qcow2"
 "$SCRIPT_DIR/08-build-base-image.sh" || fail "08-build-base-image.sh вернул код $?"
 
 step "7. bs image import — регистрация в хранилище bisquite"
-QCOW2="${OUT_QCOW2:-$WORK/jetson-orin-base.qcow2}"
+QCOW2="${OUT_QCOW2:-$WORK/jetson-orin-bsp.qcow2}"
 [ -s "$QCOW2" ] || fail "нет $QCOW2 — шаг 08 должен был его создать"
 if bs image import --help >/dev/null 2>&1; then
     bs image import "$QCOW2" --tag "$TAG" || fail "bs image import вернул код $?"

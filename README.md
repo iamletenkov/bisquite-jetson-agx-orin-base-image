@@ -13,10 +13,10 @@
 
 | Артефакт | Чем прошивается | Кто делает |
 |---|---|---|
-| `jetson-orin-base.img` | классически, `l4t_initrd_flash.sh` / `dd` | `scripts/08-build-base-image.sh` |
-| `jetson-orin-base.qcow2` | `bs device write` | он же, тем же прогоном |
-| `jetson-orin-camera:36.4.3` | `bs device write` | `vmfiles/jetson-orin-camera.vmfile` |
-| `jetson-orin-workstation:36.4.3` | `bs device write` | `vmfiles/jetson-orin-workstation.vmfile` |
+| `jetson-orin-bsp.img` | классически, `l4t_initrd_flash.sh` / `dd` | `scripts/08-build-base-image.sh` |
+| `jetson-orin-bsp.qcow2` → `jetson-orin-bsp:36.4.3` | `bs device write` | он же, тем же прогоном; в хранилище — `bs image import` |
+| `jetson-orin-base:36.4.3` | `bs device write` | `vmfiles/jetson-orin-base.vmfile`: камеры, cloud-init, утилиты, CUDA, TensorRT, GStreamer, OpenCV, PyTorch, jtop |
+| `jetson-orin-robot:36.4.3` | `bs device write` | `vmfiles/jetson-orin-robot.vmfile`: GNOME, x11vnc, code-server, обои, btop, Docker |
 
 Классический `.img` и `.qcow2` — **один и тот же диск**, отличаются только
 контейнером: второй получается конвертацией первого. Разметка, `PARTUUID`
@@ -80,12 +80,12 @@ bring-up, и решать это надо осознанно, а не мимох
 ```
 станция прошивки (amd64, Ubuntu 22.04)      arm64-хост (сам Jetson)
 ┌──────────────────────────────────┐        ┌────────────────────────────┐
-│ 01 скачать L4T + драйверы камер  │        │ bs image build camera      │
-│ 02 …                             │        │ bs image build workstation │
+│ 01 скачать L4T + драйверы камер  │        │ bs image build base        │
+│ 02 …                             │        │ bs image build robot       │
 │ 03 развернуть BSP                │        └────────────────────────────┘
 │ 04 подготовить rootfs (-U)       │                    ▲
 │ 08 собрать .img и .qcow2         │────────────────────┘
-│ 09 всё перечисленное + import    │   базовый образ едет в хранилище
+│ 09 всё перечисленное + import    │   jetson-orin-bsp едет в хранилище
 └──────────────────────────────────┘
 ```
 
@@ -104,13 +104,13 @@ libguestfs чужую архитектуру не эмулирует — на am
 На станции прошивки:
 
 ```bash
-make base            # 01→02→03→04→08 плюс регистрация в хранилище bisquite
+make bsp             # 01→02→03→04→08 плюс регистрация в хранилище bisquite
 ```
 
 На Jetson (arm64):
 
 ```bash
-make images          # camera, затем workstation поверх неё
+make images          # base (с --smp/--memsize под PyTorch), затем robot поверх него
 ```
 
 `make help` печатает все цели с пометкой, где какая запускается.
@@ -154,7 +154,7 @@ sudo WORK=/srv/jetson scripts/04-customize-rootfs.sh -u rescue -p <пароль>
 make flash-emmc
 ```
 
-а под образ флота — заново и с `-U` (это делает `make base-fresh`).
+а под образ флота — заново и с `-U` (это делает `make bsp-fresh`).
 Два прогона, а не один: шаг `03` необратим, и `04` правит дерево на месте.
 
 Скрипт это проверяет сам: перед заливкой в eMMC он смотрит, есть ли

@@ -1,0 +1,41 @@
+# AGX Orin + Sensing GMSL2: робот с рабочим столом поверх jetson-orin-base.
+#
+# Собирается только на arm64. Первая загрузка не требует сети: расширения
+# с фазой firstboot лишь доводят настройку до пользователя cloud-init.
+# Добавляя слой, проверь его configure.sh на это свойство.
+FROM jetson-orin-base:36.4.3 AS jetson-orin-robot:36.4.3
+
+LABEL os=l4t
+LABEL arch=arm64
+LABEL version=r36.4.3
+LABEL description="AGX Orin + Sensing GMSL2: jetson-orin-base + GNOME, VNC, code-server, btop, Docker"
+LABEL jetson.board=p3701-0000
+LABEL jetson.carrier=p3737-0000
+LABEL jetson.jetpack=6.2
+
+EXTENSION btop
+
+# GNOME с автологином под пользователем cloud-init.
+EXTENSION gnome
+EXTENSION cloud-user-desktop
+
+# x11vnc, а не vino: настройка — файл /etc/default/bisquite-x11vnc, его
+# можно править из манифеста записи и на работающей машине; у vino — dconf
+# пользователя. Слушает петлю: открывает наружу манифест записи, иначе
+# туннелем: ssh -L 5900:127.0.0.1:5900 <пользователь>@<плата>
+EXTENSION x11vnc X11VNC_LISTEN=localhost
+
+# Без пароля, поэтому на петле: ssh -L 9002:127.0.0.1:9002 <пользователь>@<плата>
+EXTENSION code-server CODE_SERVER_PORT=9002 CODE_SERVER_PASSWORD=none \
+    CODE_SERVER_BIND=127.0.0.1
+
+# После gnome: требует desktop-session. Путь — от каталога расширения.
+EXTENSION wallpaper WALLPAPER_IMAGE=images/dst_1080.jpg
+
+EXTENSION docker
+
+# Браузера нет намеренно: Chromium на arm64 есть только снапом, а он
+# доустанавливается на первой загрузке по сети. Если нужен — apt на
+# сборке: epiphany-browser или falkon.
+
+FIRSTBOOT_COMMAND "ssh-keygen -A && systemctl restart ssh || true"
