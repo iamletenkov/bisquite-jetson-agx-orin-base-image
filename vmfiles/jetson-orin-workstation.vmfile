@@ -18,7 +18,7 @@ FROM jetson-orin-camera:36.4.3
 LABEL os=l4t
 LABEL arch=arm64
 LABEL version=r36.4.3
-LABEL description="AGX Orin + Sensing GMSL2: CUDA, TensorRT, GNOME, VNC, code-server, jtop, btop"
+LABEL description="AGX Orin + Sensing GMSL2: CUDA, TensorRT, GStreamer, OpenCV, PyTorch, GNOME, VNC, code-server, jtop, btop, Docker"
 LABEL jetson.board=p3701-0000
 LABEL jetson.carrier=p3737-0000
 LABEL jetson.jetpack=6.2
@@ -53,6 +53,31 @@ RUN_COMMAND apt-get install -y \
 # не каждому роботу с этими камерами нужен инференс на месте.
 EXTENSION cuda-toolkit
 EXTENSION tensorrt
+
+# Заголовки GStreamer и Jetson Multimedia API. Сам GStreamer с аппаратным
+# кодеком уже стоит слоем ниже (jetson-orin-camera, GSTREAMER_DEV=0);
+# повторный прогон с умолчанием GSTREAMER_DEV=1 доставляет только -dev.
+EXTENSION l4t-gstreamer
+
+# OpenCV 4.8.0 от NVIDIA: cv2 с GStreamer (кадр с камеры через nvvidconv
+# прямо в numpy), без CUDA — почему, в README расширения.
+EXTENSION l4t-opencv
+
+# PyTorch 2.5.0 nv24.08 + torchvision 0.20.0, собранный здесь же с CUDA.
+# СБОРКА torchvision ИДЁТ ВНУТРИ virt-customize — давай ресурсы:
+#     bs image build --smp 8 --memsize 16000 ...
+# На умолчании (1 vCPU, 2 ГБ) пройдёт, но долго.
+# Поднимает numpy до 1.26.4 для всего Python 3.10 — это требование torch,
+# разбор и проверка, что cloud-init от этого не ломается, — в README.
+EXTENSION l4t-pytorch
+
+# TENSORFLOW НЕ ВКЛЮЧЁН, И ЭТО РЕШЕНИЕ, А НЕ ПРОПУСК.
+#
+# Расширение есть и проверено на плате (обучение на GPU, вместе с torch
+# в одном процессе). Но TF 2.16.1 nv24.08 — последняя сборка NVIDIA под
+# Jetson, новых не выходит, а в образе он занимает 1.9 ГБ. Нужен для
+# уже написанного кода на TF/Keras — раскомментируй:
+# EXTENSION l4t-tensorflow
 
 # jtop — раньше CUDA/TensorRT, без разницы, но рядом с остальным мониторингом.
 EXTENSION jetson-stats

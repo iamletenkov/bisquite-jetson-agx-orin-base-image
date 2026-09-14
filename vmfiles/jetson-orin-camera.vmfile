@@ -19,7 +19,7 @@ FROM jetson-orin-base:36.4.3 AS jetson-orin-camera:36.4.3
 LABEL os=l4t
 LABEL arch=arm64
 LABEL version=r36.4.3
-LABEL description="AGX Orin + Sensing GMSL2 (SG8A-AGON-G2Y-A1): база с камерами, без десктопа"
+LABEL description="AGX Orin + Sensing GMSL2 (SG8A-AGON-G2Y-A1): база с камерами и аппаратным видеокодеком, без десктопа"
 LABEL jetson.board=p3701-0000
 LABEL jetson.carrier=p3737-0000
 LABEL jetson.jetpack=6.2
@@ -32,6 +32,15 @@ LABEL jetson.jetpack=6.2
 # диске при записи. Но это значит, что у base ПОЧТИ НЕТ свободного места
 # во время СБОРКИ: замер 2026-09-12 — APP 8007016 КБ, занято 7396956 КБ,
 # свободно 181772 КБ (93%). Первая же попытка EXTENSION sensing-gmsl2-camera
+
+# GStreamer с аппаратным кодеком — здесь, а не только в рабочей станции.
+# Камера, с которой нечем сжать и отдать видео, — половина функции: без
+# nvidia-l4t-gstreamer поток 1080p жмётся программным x264enc на CPU,
+# а безголовый робот поверх этого слоя GNOME не ставит и убунтовского
+# GStreamer не получил бы вовсе. RTSP-сервер, WebRTC (libnice) и
+# python3-gst — туда же. Заголовки для разработки (GSTREAMER_DEV=1)
+# добавляет рабочая станция: роботу в поле они не нужны.
+EXTENSION l4t-gstreamer GSTREAMER_DEV=0
 # упала на "No space left on device", даже с --depth 1 клоном пакета
 # драйверов.
 #

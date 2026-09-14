@@ -22,6 +22,11 @@ WORK ?= /srv/jetson
 BASE_TAG      ?= jetson-orin-base:36.4.3
 CAMERA_TAG    ?= jetson-orin-camera:36.4.3
 WORKSTATION_TAG ?= jetson-orin-workstation:36.4.3
+# Ресурсы appliance virt-customize для рабочей станции: l4t-pytorch
+# компилирует torchvision с CUDA внутри сборки, а умолчание bisquite —
+# 1 vCPU и 2 ГБ. 8 и 20000 — замер 2026-09-14 на AGX Orin: слой за 496 с.
+BUILD_SMP     ?= 8
+BUILD_MEMSIZE ?= 20000
 
 BS ?= bs
 
@@ -84,7 +89,7 @@ camera: ## [board] слой камер Sensing GMSL2 + cloud-init поверх �
 
 .PHONY: workstation
 workstation: ## [board] рабочая станция робота поверх слоя камер
-	$(BS) image build -f vmfiles/jetson-orin-workstation.vmfile --tag $(WORKSTATION_TAG)
+	$(BS) image build --smp $(BUILD_SMP) --memsize $(BUILD_MEMSIZE) -f vmfiles/jetson-orin-workstation.vmfile --tag $(WORKSTATION_TAG)
 
 .PHONY: images
 images: camera workstation ## [board] оба образа подряд

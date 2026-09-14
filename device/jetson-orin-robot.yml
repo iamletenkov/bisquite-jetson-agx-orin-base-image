@@ -1,13 +1,14 @@
 # Робот на AGX Orin: запись jetson-orin-workstation на SSD.
 #
-# Образ собирается цепочкой из трёх звеньев, см. README.md: базовый образ
-# изготавливается вне bisquite (BSP + jetson-disk-image-creator.sh, цель
-# `make base`) и регистрируется `bs image import`, поверх ложится слой
-# камер, поверх него — рабочая станция с CUDA, TensorRT, GNOME, VNC
-# и code-server (`make images`).
+# Образ собирается цепочкой из трёх звеньев, см.
+# ../build/jetson/orin/README.md: базовый образ изготавливается вне
+# bisquite (BSP + jetson-disk-image-creator.sh) и регистрируется
+# `bs image import`, поверх ложится слой камер, поверх него — рабочая
+# станция с CUDA, TensorRT, GNOME, VNC и code-server.
 #
-# ⚠️ КУДА КЛАСТЬ СВОЙ. Не сюда: этот файл коммитится. Скопируйте
-# в каталог вне git, подставьте значения, `chmod 600`.
+# ⚠️ КУДА КЛАСТЬ СВОЙ. Не сюда: `examples/` коммитится. Скопируйте
+# в каталог вне git (в этом репозитории — `.scratchpad/`), подставьте
+# значения, `chmod 600`.
 #
 # Что здесь настоящее, а что нет:
 #
@@ -20,7 +21,7 @@
 # ЗАПУСК — через sudo и с явным каталогом данных:
 #
 #   sudo env BISQUITE_DATA_DIR=/home/jetson/.local/share/bisquite \
-#     bs device write -f ~/write/orin-robot.yml
+#     bs device write -f .scratchpad/jetson-orin/orin-robot.yml
 #
 # `BISQUITE_DATA_DIR` нужен, пока bisquite стоит не из deb-пакета: под
 # root каталог данных резолвится от его домашнего, а не от пользовательского,
@@ -128,7 +129,14 @@ devices:
         # SSH по паролю. cloud-init и так ставит ssh_pwauth: true, но
         # в образе может лежать своё правило в sshd_config.d — оно
         # сильнее. Дописываем явно и перезапускаем sshd.
-        - "printf 'PasswordAuthentication yes\nKbdInteractiveAuthentication yes\n' > /etc/ssh/sshd_config.d/99-bisquite-password-auth.conf"
+        # Кавычки YAML здесь ОДИНАРНЫЕ намеренно. В двойных `\n` —
+        # escape самого YAML, и до printf доезжает готовый перевод
+        # строки: команда становится трёхстрочной. Работает она и так
+        # (проверено на плате 2026-09-14, файл получился верным), но
+        # читается как ошибка, а разбирается только запуском. В одинарных
+        # `\n` остаётся двумя символами, и раскрывает его printf — то,
+        # что и написано.
+        - 'printf ''PasswordAuthentication yes\nKbdInteractiveAuthentication yes\n'' > /etc/ssh/sshd_config.d/99-bisquite-password-auth.conf'
         - "systemctl restart ssh || true"
 
         # VNC на все интерфейсы. В образе x11vnc слушает петлю — это
@@ -143,8 +151,29 @@ devices:
         # CODE_SERVER_PASSWORD=none), поэтому строка ниже открывает
         # редактор с шеллом всей сети. Для стенда приемлемо, для поля —
         # задавай пароль в config.yaml перед тем, как это включать.
-        - "sed -i 's/^bind-addr:.*/bind-addr: 0.0.0.0:9002/' /home/robot/.config/code-server/config.yaml || true"
-        - "systemctl restart code-server@robot || true"
+        #
+        # ⚠️ ПРАВИТСЯ РУЧКА СБОРКИ, А НЕ КОНФИГ ПОЛЬЗОВАТЕЛЯ. Соблазн
+        # написать сюда `sed` по /home/robot/.config/code-server/config.yaml
+        # велик, и он НИКОГДА не сработает. Замер на живой плате
+        # 2026-09-14: cloud-final закончил в 02:12:24.277, а
+        # configure-code-server.service стартовал в 02:12:24.288 — через
+        # 11 мс — и создал пользовательский конфиг только в 02:12:27.
+        # То есть команда отсюда правила несуществующий файл, а `|| true`
+        # это проглатывал; служба потом писала свой 127.0.0.1, и наружу
+        # редактор не выходил.
+        #
+        # Гонки тут нет вовсе, и это не везение: юнит объявлен
+        # `After=cloud-final.service`, то есть команды манифеста
+        # гарантированно идут ПЕРВЫМИ. Значит правильная ручка — та,
+        # что уже лежит в образе со сборки и читается службой при старте
+        # (`read_config_value BIND`), ровно как /etc/default/bisquite-x11vnc
+        # у VNC выше.
+        #
+        # Без `|| true`: файл кладёт расширение на сборке, и его
+        # отсутствие означает, что образ собран не тем, чем думали, —
+        # такое обязано быть громким. Перезапуск службы не нужен: она
+        # ещё не стартовала и прочитает правку сама.
+        - "sed -i 's/^BIND:.*/BIND: 0.0.0.0/' /opt/vmsetup/code-server/config.yaml"
 
       # Раздел cidata. Умолчание `new-partition` здесь верное: образ
       # несёт `INSTALL cloud-init` плюс расширение `nocloud-cidata`,
