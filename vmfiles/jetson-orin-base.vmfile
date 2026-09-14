@@ -37,6 +37,8 @@ RUN_COMMAND apt-get install -y \
     tmux \
     mc \
     net-tools \
+    traceroute \
+    dnsutils \
     usbutils \
     xz-utils \
     tree \
