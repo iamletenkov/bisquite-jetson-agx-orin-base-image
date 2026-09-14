@@ -63,6 +63,12 @@ devices:
         - "sed -i 's/^X11VNC_LISTEN=.*/X11VNC_LISTEN=all/' /etc/bisquite/x11vnc/config"
         - "systemctl restart x11vnc@robot || true"
 
+        # Selkies на все интерфейсы: https://<робот>:6900, БЕЗ ПАРОЛЯ — рабочий
+        # стол, буфер, файлы и API команд любому в сети. Без ручки
+        # BISQUITE_SELKIES_ALLOW_NO_AUTH обёртка на адресе не петли не стартует.
+        - "sed -i -e 's/^SELKIES_ADDR=.*/SELKIES_ADDR=0.0.0.0/' -e 's/^BISQUITE_SELKIES_ALLOW_NO_AUTH=.*/BISQUITE_SELKIES_ALLOW_NO_AUTH=true/' /etc/bisquite/selkies/config"
+        - "systemctl restart 'selkies@*' || true"
+
         # code-server на все интерфейсы. Правится файл из образа, а не
         # ~/.config/code-server: его служба создаёт позже этих команд
         # (After=cloud-final), и sed туда бьёт мимо.

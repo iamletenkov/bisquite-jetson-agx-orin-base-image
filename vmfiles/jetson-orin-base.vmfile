@@ -1,7 +1,7 @@
 # AGX Orin + Sensing SG8A-AGON-G2Y-A1: основной образ робота (без экрана).
 #
 #   jetson-orin-bsp:36.4.3    rootfs из BSP NVIDIA: 08-build-base-image.sh + bs image import
-#   jetson-orin-base:36.4.3   этот файл — камеры, CUDA, TensorRT, GStreamer, OpenCV, PyTorch
+#   jetson-orin-base:36.4.3   этот файл — камеры, CUDA, TensorRT, GStreamer, OpenCV, PyTorch, Firefox
 #   jetson-orin-robot:36.4.3  поверх — рабочий стол, VNC, code-server, Docker
 #
 # Собирается только на arm64 (слои с кодом в госте). Нужны ресурсы под
@@ -13,7 +13,7 @@ FROM jetson-orin-bsp:36.4.3 AS jetson-orin-base:36.4.3
 LABEL os=l4t
 LABEL arch=arm64
 LABEL version=r36.4.3
-LABEL description="AGX Orin + Sensing GMSL2 (SG8A-AGON-G2Y-A1): камеры, видеокодек, CUDA, TensorRT, OpenCV, PyTorch, jtop — без рабочего стола"
+LABEL description="AGX Orin + Sensing GMSL2 (SG8A-AGON-G2Y-A1): камеры, видеокодек, CUDA, TensorRT, OpenCV, PyTorch, jtop, Firefox — без рабочего стола"
 LABEL jetson.board=p3701-0000
 LABEL jetson.carrier=p3737-0000
 LABEL jetson.jetpack=6.2
@@ -59,6 +59,10 @@ EXTENSION l4t-pytorch
 # EXTENSION l4t-tensorflow
 
 EXTENSION jetson-stats
+
+# Firefox .deb из packages.mozilla.org: штатный firefox на jammy — пустышка
+# под снап, а snapd в образе не посеян.
+EXTENSION firefox FIREFOX_LANGPACK=ru
 
 # Каждая загрузка отмечается успешной (`nvbootctrl verify`). Без отметки UEFI
 # после трёх загрузок признаёт систему негодной, и плата не грузится ни с
