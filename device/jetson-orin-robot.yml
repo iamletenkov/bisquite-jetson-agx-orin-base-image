@@ -74,10 +74,10 @@ devices:
           -e 's/^BISQUITE_SELKIES_ALLOW_NO_AUTH=.*/BISQUITE_SELKIES_ALLOW_NO_AUTH=true/' /etc/bisquite/selkies/config
         - "systemctl restart 'selkies@*' || true"
 
-        # code-server на все интерфейсы. Правится файл из образа, а не
+        # code-server на все интерфейсы. Правится конфиг расширения в /etc/bisquite, а не
         # ~/.config/code-server: его служба создаёт позже этих команд
         # (After=cloud-final), и sed туда бьёт мимо.
-        - "sed -i 's/^BIND:.*/BIND: 0.0.0.0/' /opt/vmsetup/code-server/config.yaml"
+        - "sed -i 's/^BIND:.*/BIND: 0.0.0.0/' /etc/bisquite/code-server/config.yaml"
 
         # Последним: join ждёт регистрации до 2 мин, остальное к этому времени настроено.
         # Teleport: адрес кластера, env (право доступа: tpEnv в LDAP) и токен
