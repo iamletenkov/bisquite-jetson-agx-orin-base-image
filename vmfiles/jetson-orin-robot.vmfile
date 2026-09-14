@@ -8,7 +8,7 @@ FROM jetson-orin-base:36.4.3 AS jetson-orin-robot:36.4.3
 LABEL os=l4t
 LABEL arch=arm64
 LABEL version=r36.4.3
-LABEL description="AGX Orin + Sensing GMSL2: jetson-orin-base + GNOME, VNC, Selkies, code-server, btop, Docker"
+LABEL description="AGX Orin + Sensing GMSL2: jetson-orin-base + GNOME, VNC, Selkies, code-server, Teleport, btop, Docker"
 LABEL jetson.board=p3701-0000
 LABEL jetson.carrier=p3737-0000
 LABEL jetson.jetpack=6.2
@@ -46,6 +46,12 @@ EXTENSION selkies SELKIES_ADDR=127.0.0.1 SELKIES_PORT=6900 SELKIES_ENABLE_HTTPS=
     SELKIES_ENABLE_SHARING=true SELKIES_SECOND_SCREEN=true \
     SELKIES_UI_SIDEBAR_SHOW_GAMEPADS=true SELKIES_UI_SIDEBAR_SHOW_WEBCAM=true \
     SELKIES_UI_SIDEBAR_SHOW_SHARING=true SELKIES_UI_SIDEBAR_SHOW_APPS=true
+
+# Teleport: SSH-нода и веб-приложения без входящих портов. Образ нейтрален
+# к кластеру — адрес, env и токен задаёт `bisquite-teleport join` из манифеста
+# записи. code-server объявлен в apps.d сам. Версия не новее кластера;
+# зеркало стека: TELEPORT_MIRROR=https://binaries.<домен>.
+EXTENSION teleport-agent TELEPORT_VERSION=18.6.8
 
 # Браузер (Firefox) — в jetson-orin-base.
 
