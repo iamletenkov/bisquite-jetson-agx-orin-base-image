@@ -60,7 +60,7 @@ devices:
 
         # VNC на все интерфейсы. Пароль — строкой X11VNC_PASSWORD=<пароль>
         # в том же файле.
-        - "sed -i 's/^X11VNC_LISTEN=.*/X11VNC_LISTEN=all/' /etc/default/bisquite-x11vnc"
+        - "sed -i 's/^X11VNC_LISTEN=.*/X11VNC_LISTEN=all/' /etc/bisquite/x11vnc/config"
         - "systemctl restart x11vnc@robot || true"
 
         # code-server на все интерфейсы. Правится файл из образа, а не
