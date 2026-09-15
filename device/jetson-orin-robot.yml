@@ -23,6 +23,9 @@ devices:
     target: /dev/sda
     serial: "012345678933"
     model: "RTL9210B-CG"
+    # Чем прошит QSPI платы. Образ требует ветку меткой boot.firmware: при
+    # расхождении bs device write откажет до записи, без поля — предупредит.
+    boot-firmware: jetson-qspi:r36.4
 
     cloud-init:
       # В образе только root без пароля — пользователь приходит отсюда.

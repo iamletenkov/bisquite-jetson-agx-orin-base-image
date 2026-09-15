@@ -8,6 +8,8 @@ FROM jetson-orin-base:36.4.3
 LABEL os=l4t
 LABEL arch=arm64
 LABEL version=r36.4.3
+# Ветка загрузчика в QSPI платы: bs device write сверяет с boot-firmware манифеста.
+LABEL boot.firmware=jetson-qspi:r36.4
 LABEL description="AGX Orin + Sensing GMSL2: jetson-orin-base + GNOME, VNC, Selkies, code-server, Teleport, btop, Docker"
 LABEL jetson.board=p3701-0000
 LABEL jetson.carrier=p3737-0000
