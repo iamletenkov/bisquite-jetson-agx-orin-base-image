@@ -16,11 +16,33 @@
 | `jetson-orin-bsp.img` | классически, `l4t_initrd_flash.sh` / `dd` | `scripts/08-build-base-image.sh` |
 | `jetson-orin-bsp.qcow2` → `jetson-orin-bsp:36.4.3` | `bs device write` | он же, тем же прогоном; в хранилище — `bs image import` |
 | `jetson-orin-base:36.4.3` | `bs device write` | `vmfiles/jetson-orin-base.vmfile`: камеры, cloud-init, утилиты, CUDA, TensorRT, GStreamer, OpenCV, PyTorch, jtop |
-| `jetson-orin-robot:36.4.3` | `bs device write` | `vmfiles/jetson-orin-robot.vmfile`: GNOME, x11vnc, code-server, обои, btop, Docker |
+| `jetson-orin-robot:36.4.3` | `bs device write` | `vmfiles/jetson-orin-robot.vmfile`: GNOME, x11vnc, code-server, Selkies с аппаратным кодированием H.264 (`pixelflux-tegra`), Teleport, обои, btop, Docker |
 
 Классический `.img` и `.qcow2` — **один и тот же диск**, отличаются только
 контейнером: второй получается конвертацией первого. Разметка, `PARTUUID`
 и загрузочная запись у них совпадают байт в байт.
+
+## Удалённый доступ к роботу — только по петле
+
+`x11vnc`, `code-server` и Selkies слушают `127.0.0.1` и пароля не просят:
+к петле дотягивается только тот, кто уже на машине, — у него и так шелл.
+Манифест `device/jetson-orin-robot.yml` наружу их **не открывает**, и строки,
+которые это делали (`X11VNC_LISTEN=all`, `CODE_SERVER_BIND=0.0.0.0`), в нём
+закомментированы.
+
+Отдельно про Selkies: он не публикуется наружу ни одним манифестом записи,
+и это не осторожность про конкретный стенд. Без пароля он отдаёт рабочий стол,
+буфер обмена, файлы и API команд любому, кто дотянулся до порта, — то есть
+равен шеллу. Снаружи ходят через веб-приложение Teleport (его `join` —
+последняя команда первой загрузки) или пробросом порта:
+
+```bash
+ssh -L 6900:127.0.0.1:6900 <пользователь>@<робот>
+```
+
+Аппаратное кодирование H.264 даёт `pixelflux-tegra`: он подменяет pixelflux
+внутри AppImage Selkies колесом апстрима с бэкендом Tegra. На живой сессии
+1080p@30 — **0.089 ядра** против 0.423 на x264.
 
 ## Состав `scripts/`
 
@@ -229,7 +251,7 @@ wildcard не поддерживает, и вписанное мимо имя д
 | Репозиторий | Что берёт отсюда / отдаёт сюда |
 |---|---|
 | [bisquite](https://github.com/iamletenkov/bisquite) | сам инструмент `bs`: сборка VMFILE, хранилище, запись на носители |
-| [bisquite-extensions](https://github.com/iamletenkov/bisquite-extensions) | расширения, на которые ссылаются VMFILE: `sensing-gmsl2-camera`, `cuda-toolkit`, `tensorrt`, `gnome`, `vino-vnc`, `code-server`, `jetson-stats`, `btop`, `wallpaper`, `nocloud-cidata` |
+| [bisquite-extensions](https://github.com/iamletenkov/bisquite-extensions) | расширения, на которые ссылаются VMFILE. Базовый: `nocloud-cidata`, `sensing-gmsl2-camera`, `cuda-toolkit`, `tensorrt`, `l4t-gstreamer`, `l4t-opencv`, `l4t-pytorch`, `jetson-stats`, `firefox`, `l4t-boot-verify`. Робот: `btop`, `gnome`, `x11vnc`, `code-server`, `wallpaper`, `docker`, `selkies`, `pixelflux-tegra`, `teleport-agent` |
 
 ⚠️ **Сценарии `scripts/` сейчас существуют в двух местах**: здесь и в расширении
 `nvidia-jetpack` репозитория bisquite-extensions, которое ставит их в образ
