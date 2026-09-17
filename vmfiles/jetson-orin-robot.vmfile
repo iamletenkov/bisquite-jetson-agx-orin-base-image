@@ -43,7 +43,8 @@ EXTENSION docker
 # на все интерфейсы открывает манифест записи. HTTPS — браузер даёт буфер,
 # микрофон, камеру и геймпады только защищённому контексту; сертификат
 # Selkies выпускает на устройстве. Звук — monitor PulseAudio пользователя.
-# Нужен автологин (FIRSTBOOT_COMMAND ниже). +1.7 ГБ; кодирование программное.
+# Нужен автологин (FIRSTBOOT_COMMAND ниже). +1.7 ГБ; кодирование аппаратное —
+# его включает pixelflux-tegra строкой ниже.
 EXTENSION selkies \
     SELKIES_ADDR=127.0.0.1 \
     SELKIES_PORT=6900 \
@@ -58,6 +59,13 @@ EXTENSION selkies \
     SELKIES_UI_SIDEBAR_SHOW_WEBCAM=true \
     SELKIES_UI_SIDEBAR_SHOW_SHARING=true \
     SELKIES_UI_SIDEBAR_SHOW_APPS=true
+
+# Аппаратное кодирование H.264 для Selkies: подменяет pixelflux внутри его
+# AppImage официальным колесом апстрима с бэкендом Tegra. 1080p@30 на живой
+# сессии — 0.089 ядра против 0.423 на x264. Строка обязана идти ПОСЛЕ selkies:
+# расширение правит поставленный тем AppImage (порядок строк bisquite не
+# сортирует, поэтому при нарушении установка отказывает громко). +23 МБ.
+EXTENSION pixelflux-tegra
 
 # Teleport: SSH-нода и веб-приложения без входящих портов. Образ нейтрален
 # к кластеру — адрес, env и токен задаёт `bisquite-teleport join` из манифеста
