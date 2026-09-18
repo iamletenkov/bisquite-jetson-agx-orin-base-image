@@ -61,14 +61,38 @@ else
 fi
 
 # ------------------------------------------------------------- исходники
+# ВАЖНО: репозиторий bisquite ЗАКРЫТЫЙ, и у сборочных узлов парка нет ни
+# ключей GitHub, ни токенов. Клон по https там падает на
+#   fatal: could not read Username for 'https://github.com'
+# — то есть «нет исходников» здесь нормальное состояние, а не поломка, и
+# отвечать на него надо инструкцией, а не трассировкой git.
 step "2. Исходники bisquite -> $BISQUITE_SRC"
-if [ -d "$BISQUITE_SRC/.git" ]; then
-    echo "уже склонирован, обновляю"
-    git -C "$BISQUITE_SRC" pull --ff-only || warn "git pull не прошёл — работаю с тем, что есть"
+if [ -d "$BISQUITE_SRC/.git" ] || [ -f "$BISQUITE_SRC/pyproject.toml" ]; then
+    echo "исходники уже на месте"
+    git -C "$BISQUITE_SRC" pull --ff-only 2>/dev/null \
+        || echo "  (обновить из сети не вышло — работаю с тем, что доставлено)"
+elif git clone "$BISQUITE_REPO" "$BISQUITE_SRC" 2>/dev/null; then
+    echo "склонировано из $BISQUITE_REPO"
 else
-    git clone "$BISQUITE_REPO" "$BISQUITE_SRC"
+    cat <<EOF
+
+ОТКАЗ: исходников bisquite нет, и склонировать их отсюда нечем.
+Репозиторий закрытый, а у этого узла нет ни ключа, ни токена GitHub.
+
+Доставь их с машины, где они есть (исключения обязательны — .venv чужой
+архитектуры не заработает, а .scratchpad содержит настоящие секреты):
+
+    rsync -a --info=progress2 \\
+        --exclude .venv --exclude .scratchpad --exclude .mcp.json \\
+        --exclude node_modules --exclude htmlcov --exclude release \\
+        --exclude '.*_cache' \\
+        <путь>/bisquite/ $(id -un)@$(hostname -I | awk '{print $1}'):$BISQUITE_SRC/
+
+и запусти скрипт заново.
+EOF
+    exit 1
 fi
-git -C "$BISQUITE_SRC" log --oneline -1
+git -C "$BISQUITE_SRC" log --oneline -1 2>/dev/null || echo "(не git-чекаут — истории нет)"
 
 # -------------------------------------------------------- системные пакеты
 # Своего списка здесь нет намеренно: он есть у самого bisquite и сторожится
