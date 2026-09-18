@@ -124,10 +124,15 @@ else
 fi
 rm -rf "$DSA_TMP"
 
-for c in qemu-img sgdisk losetup blkid; do
-    command -v "$c" >/dev/null 2>&1 || fail "нет утилиты $c"
+# xmllint зовёт не этот скрипт, а flash.sh внутри creator'а — и без него
+# отказывает уже ПОСЛЕ копирования всех BCT и прошивочных блобов, строкой
+# "ERROR xmllint not found!" (замер на AGX Orin 2026-09-18, чистая jammy:
+# пакета libxml2-utils в образе робота нет). Проверка здесь стоит ровно
+# затем, чтобы такой отказ приходил до долгих шагов, а не после них.
+for c in qemu-img sgdisk losetup blkid xmllint; do
+    command -v "$c" >/dev/null 2>&1 || fail "нет утилиты $c (xmllint — пакет libxml2-utils)"
 done
-echo "утилиты     : qemu-img sgdisk losetup blkid на месте"
+echo "утилиты     : qemu-img sgdisk losetup blkid xmllint на месте"
 
 step "2. Дерево BSP"
 

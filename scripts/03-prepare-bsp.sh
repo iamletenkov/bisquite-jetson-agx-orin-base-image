@@ -97,18 +97,31 @@ recheck "$RFS_FILE" "$RFS_SHA1"
 # и зовёт там dpkg. Без регистрации это "Exec format error" — только позже
 # и на полпути. На живой Ubuntu регистрацию держит systemd-binfmt, ей
 # достаточно установленного qemu-user-static (его ставит install.sh).
-if [ ! -e /proc/sys/fs/binfmt_misc/qemu-aarch64 ]; then
-    echo "ОСТАНОВ: qemu-aarch64 не зарегистрирован в binfmt_misc."
-    echo "    sudo apt-get install -y qemu-user-static"
-    echo "    sudo systemctl restart systemd-binfmt"
-    exit 1
+#
+# НА aarch64-ХОСТЕ ПРОВЕРЯТЬ НЕЧЕГО, и это не послабление: chroot в
+# aarch64-дерево там нативен, эмулятор не участвует вовсе. Больше того,
+# qemu-user-static нативную архитектуру в binfmt_misc и НЕ регистрирует —
+# проверено на AGX Orin 2026-09-18: пакет поставлен, systemd-binfmt
+# перезапущен, /proc/sys/fs/binfmt_misc/qemu-aarch64 так и не появился
+# (в списке только cli, python2.7, python3.10). То есть безусловная проверка
+# делала сборку базового образа НА САМОЙ ПЛАТЕ невозможной в принципе,
+# хотя libguestfs, bisquite и всё остальное там работают.
+if [ "$(uname -m)" = "aarch64" ]; then
+    echo "binfmt: не требуется — хост aarch64, chroot в aarch64-дерево нативный"
+else
+    if [ ! -e /proc/sys/fs/binfmt_misc/qemu-aarch64 ]; then
+        echo "ОСТАНОВ: qemu-aarch64 не зарегистрирован в binfmt_misc."
+        echo "    sudo apt-get install -y qemu-user-static"
+        echo "    sudo systemctl restart systemd-binfmt"
+        exit 1
+    fi
+    grep -q '^enabled' /proc/sys/fs/binfmt_misc/qemu-aarch64 || {
+        echo "ОСТАНОВ: регистрация qemu-aarch64 выключена:"
+        cat /proc/sys/fs/binfmt_misc/qemu-aarch64
+        exit 1
+    }
+    echo "binfmt: $(sed -n '2p' /proc/sys/fs/binfmt_misc/qemu-aarch64)"
 fi
-grep -q '^enabled' /proc/sys/fs/binfmt_misc/qemu-aarch64 || {
-    echo "ОСТАНОВ: регистрация qemu-aarch64 выключена:"
-    cat /proc/sys/fs/binfmt_misc/qemu-aarch64
-    exit 1
-}
-echo "binfmt: $(sed -n '2p' /proc/sys/fs/binfmt_misc/qemu-aarch64)"
 
 # Место: BSP + rootfs + результат apply_binaries — порядка 25 GB.
 avail_gb=$(df -BG --output=avail "$WORK" | tail -1 | tr -dc '0-9')
