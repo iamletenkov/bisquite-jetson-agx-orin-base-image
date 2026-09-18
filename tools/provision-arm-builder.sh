@@ -133,8 +133,42 @@ else
     grep -c '' /boot/extlinux/extlinux.conf 2>/dev/null | sed 's/^/  строк: /' || true
 fi
 
+# --------------------------------------------------- источник расширений
+#
+# Без него слой `EXTENSION` не соберётся: резолвер ищет расширения только
+# в кеше <DATA_DIR>/extensions/ и в сеть за ними не ходит НИКОГДА — ни при
+# сборке, ни при валидации. Наполняет кеш отдельная явная команда.
+#
+# Источник объявляем `type: path` на подмодуль этого репозитория, а не `git`:
+# у сборочных узлов парка нет ключей GitHub, а у Jetson Nano GitHub по ssh
+# недоступен вовсе. Путь обязан быть абсолютным — extensions.yaml лежит
+# в каталоге данных, и относительный указывал бы не туда.
+step "6. Источник расширений"
+EXT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/bisquite-extensions"
+DATA_DIR="${BISQUITE_DATA_DIR:-$HOME/.local/share/bisquite}"
+if [ ! -d "$EXT_DIR/extensions" ]; then
+    warn "нет $EXT_DIR — подмодуль не инициализирован (git submodule update --init), расширения не подключаю"
+else
+    mkdir -p "$DATA_DIR/data"
+    cat > "$DATA_DIR/data/extensions.yaml" <<YAML
+# Заведено tools/provision-arm-builder.sh.
+# type: path, потому что у сборочных узлов нет ключей GitHub.
+sources:
+  - name: core
+    type: path
+    path: $EXT_DIR
+YAML
+    echo "объявлен источник core -> $EXT_DIR"
+    BISQUITE_DATA_DIR="$DATA_DIR" "$BISQUITE_SRC/.venv/bin/bs" extension sync \
+        || warn "bs extension sync не прошёл — без него сборка не найдёт ни одного расширения"
+    BISQUITE_DATA_DIR="$DATA_DIR" "$BISQUITE_SRC/.venv/bin/bs" extension ls 2>/dev/null | head -5 || true
+fi
+
+# ПОСЛЕ КАЖДОЙ ПРАВКИ РАСШИРЕНИЙ НУЖЕН ПОВТОРНЫЙ `bs extension sync`:
+# сборка читает КЕШ, а не источник. Без этого правка не доедет и промолчит.
+
 # ------------------------------------------------------------- проверка
-step "6. Проверка"
+step "7. Проверка"
 BS="$BISQUITE_SRC/.venv/bin/bs"
 "$BS" self-check || warn "self-check нашёл недостающее — смотри таблицу выше"
 
