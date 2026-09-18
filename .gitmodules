@@ -1,0 +1,3 @@
+[submodule "bisquite-extensions"]
+	path = bisquite-extensions
+	url = git@github.com:iamletenkov/bisquite-extensions.git
