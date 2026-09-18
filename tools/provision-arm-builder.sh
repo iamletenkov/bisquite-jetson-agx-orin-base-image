@@ -133,19 +133,31 @@ if [ "$IS_L4T" -eq 0 ]; then
 elif compgen -G "/boot/vmlinuz-*" > /dev/null; then
     echo "подходящее ядро уже лежит: $(ls /boot/vmlinuz-* | tr '\n' ' ')"
 else
+    # ЯДРО И МОДУЛИ — В РАЗНЫХ ПАКЕТАХ, и это ровно та грабля, на которой
+    # шаг упал в первый раз: linux-image-* несёт только /boot/vmlinuz-*,
+    # а /lib/modules/<версия> лежит в linux-modules-*. Одного ядра supermin
+    # мало — без модулей у appliance не будет драйверов virtio, и он
+    # не загрузится.
     KPKG="$(apt-cache depends linux-image-generic 2>/dev/null \
             | awk '/Depends: linux-image-[0-9]/{print $2; exit}')"
     [ -n "$KPKG" ] || fail "не нашёл пакет linux-image-* в apt — нечего подкладывать supermin"
-    echo "пакет: $KPKG (скачиваем, НЕ устанавливаем)"
+    KVER="${KPKG#linux-image-}"
+    KVER="${KVER%-generic}-generic"
+    MPKG="linux-modules-$KVER"
+    echo "ядро   : $KPKG"
+    echo "модули : $MPKG"
+    echo "версия : $KVER"
+    echo "(скачиваем, НЕ устанавливаем — постинсталла не будет)"
 
     TMPK="$(mktemp -d)"
     trap 'rm -rf -- "$TMPK"' EXIT
-    ( cd "$TMPK" && apt-get download "$KPKG" ) || fail "apt-get download $KPKG не прошёл"
+    ( cd "$TMPK" && apt-get download "$KPKG" "$MPKG" ) \
+        || fail "apt-get download $KPKG $MPKG не прошёл"
     dpkg -x "$TMPK"/"$KPKG"_*.deb "$TMPK/root"
+    dpkg -x "$TMPK"/"$MPKG"_*.deb "$TMPK/root"
 
-    KVER="$(basename "$(ls -d "$TMPK/root/lib/modules/"*/ | head -1)")"
-    [ -n "$KVER" ] || fail "в пакете нет /lib/modules/<версия>"
-    echo "версия ядра из пакета: $KVER"
+    [ -f "$TMPK/root/boot/vmlinuz-$KVER" ] || fail "в пакете нет boot/vmlinuz-$KVER"
+    [ -d "$TMPK/root/lib/modules/$KVER" ] || fail "в пакете нет lib/modules/$KVER"
 
     sudo cp -f "$TMPK/root/boot/vmlinuz-$KVER" /boot/
     sudo cp -a "$TMPK/root/lib/modules/$KVER" /lib/modules/
