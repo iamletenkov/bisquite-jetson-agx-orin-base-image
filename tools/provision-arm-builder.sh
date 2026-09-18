@@ -162,7 +162,20 @@ else
     sudo cp -f "$TMPK/root/boot/vmlinuz-$KVER" /boot/
     sudo cp -a "$TMPK/root/lib/modules/$KVER" /lib/modules/
     sudo depmod "$KVER"
-    echo "положено: /boot/vmlinuz-$KVER и /lib/modules/$KVER"
+
+    # ПРАВА НА ЯДРО. Ubuntu кладёт /boot/vmlinuz-* с правами 0600 root:root,
+    # а supermin копирует ядро в appliance ОТ ИМЕНИ ПОЛЬЗОВАТЕЛЯ — и падает
+    # на «cp: cannot open ...: Permission denied» уже после того, как нашёл
+    # и ядро, и модули. Диагноз выглядит как ошибка сборки appliance, хотя
+    # это права на один файл.
+    #
+    # Почему это не ослабление защиты ЗДЕСЬ. Смысл режима 0600 — не давать
+    # локальным пользователям читать образ РАБОТАЮЩЕГО ядра. Этот файл
+    # к работающему ядру отношения не имеет: система грузится с /boot/Image
+    # (L4T), а сюда положен обычный ядерный образ Ubuntu, который любой
+    # желающий скачивает из репозитория одной командой.
+    sudo chmod 0644 "/boot/vmlinuz-$KVER"
+    echo "положено: /boot/vmlinuz-$KVER (0644) и /lib/modules/$KVER"
 
     # extlinux.conf трогать нечем — пакет не устанавливался, постинсталла не было.
     echo "extlinux.conf не изменён (пакет не устанавливался):"
