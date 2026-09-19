@@ -21,7 +21,10 @@ S      := scripts
 # от него OUT_QCOW2, и заданный после qcow2 лёг бы в $WORK/out, а манифест
 # искал бы его здесь. OUT_OWNER — владелец клона: при `sudo -E make` внутренний
 # sudo от root выставил бы SUDO_UID=0, и out/ стал бы root'овым.
-LOAD = export OUT_DIR="$(OUT)/$(jetson)-$(l4t)" OUT_OWNER="$$(stat -c %u:%g .)" && . $(S)/profile.sh && load_profile "$(jetson)" "$(l4t)" &&
+# WORK/OUT_RAW/OUT_QCOW2 снимаются: load_profile уважает уже заданные, а
+# оболочка станции от прежнего порядка работы (`. boards/…env`) экспортирует
+# WORK=/srv/jetson — сборка и прошивка ушли бы в дерево другой пары.
+LOAD = unset WORK OUT_RAW OUT_QCOW2 && export OUT_DIR="$(OUT)/$(jetson)-$(l4t)" OUT_OWNER="$$(stat -c %u:%g .)" && . $(S)/profile.sh && load_profile "$(jetson)" "$(l4t)" &&
 
 .DEFAULT_GOAL := help
 .PHONY: help check-submodule list build flash verify verify-all matrix check

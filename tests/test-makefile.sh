@@ -24,6 +24,25 @@ says   "fresh=1 превращается в --fresh"   "--fresh"                
 says   "результат в out/<плата>-<релиз>"  "out/agx-xavier-35.6.5"     make -n build jetson=agx-xavier l4t=35.6.5
 says   "to=bootloader зовёт шаг 14"       "14-flash-bootloader.sh"    make -n flash jetson=agx-xavier l4t=35.6.5 to=bootloader
 says   "list печатает платы"              "agx-orin"                  make -s list
+# scripts/ подменён: профиль — настоящий (ссылками), сценарии — печатают, что
+# получили; sudo — сквозной. Ни одна проверка ниже не дотянется до настоящих
+# 06/10, даже если Makefile сломается.
+mt="$(mktemp -d)"; trap 'rm -rf -- "$mt"' EXIT
+mkdir -p "$mt/s" "$mt/bin"
+for f in profile.sh boards releases pairs; do ln -s "$PWD/scripts/$f" "$mt/s/$f"; done
+for f in 06-flash.sh 07-flash-rootfs-ssh.sh 09-build-jetson-base.sh 10-flash-internal.sh; do
+  printf '#!/bin/sh\necho "ЗАПУЩЕН %s DRY_RUN=${DRY_RUN:-} WORK=$WORK OUT_RAW=$OUT_RAW OUT_QCOW2=$OUT_QCOW2"\n' "$f" > "$mt/s/$f"
+done
+printf '#!/bin/sh\n[ "$1" = -E ] && shift\nexec "$@"\n' > "$mt/bin/sudo"; chmod +x "$mt/bin/sudo"
+stubbed() { env PATH="$mt/bin:$PATH" "$@" S="$mt/s" OUT="$mt/out" </dev/null; }
+
+# Унаследованные WORK/OUT_RAW/OUT_QCOW2 (оболочка станции от прежнего
+# порядка работы) не должны доехать до сценария.
+env_of_09() { stubbed WORK=/elsewhere OUT_RAW=/elsewhere/raw.img OUT_QCOW2=/elsewhere/x.qcow2 \
+    make -s build jetson=agx-xavier l4t=35.6.5; }
+says   "унаследованный WORK не доезжает" "WORK=/srv/l4t/agx-xavier@35.6.5 " env_of_09
+says   "…и OUT_RAW тоже"                 "OUT_RAW=/srv/l4t/agx-xavier@35.6.5/system.img" env_of_09
+says   "…и OUT_QCOW2 тоже"               "OUT_QCOW2=$mt/out/agx-xavier-35.6.5/system.qcow2" env_of_09
 
 echo "проверок: $total, не прошло: $fails"
 [ "$fails" -eq 0 ]
