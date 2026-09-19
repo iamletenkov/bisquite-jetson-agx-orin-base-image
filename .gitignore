@@ -9,7 +9,7 @@ secrets/
 hosts.txt
 
 # Артефакты сборки. Образ 8-20 ГБ — в git ему места нет; он собирается
-# заново из BSP за час (`make base`).
+# заново из BSP за час (`make build`).
 *.img
 *.qcow2
 *.raw
