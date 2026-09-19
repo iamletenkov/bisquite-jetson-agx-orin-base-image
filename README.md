@@ -15,6 +15,30 @@ L4T: там, где для Raspberry Pi или обычной Ubuntu берут 
 воспроизводимым; накладывание слоёв bisquite — отдельная, следующая работа,
 и она в другом репозитории.
 
+## Сборочный узел arm64
+
+`tools/provision-arm-builder.sh` и `tools/cleanup-arm-builder.sh` отсюда
+уехали вместе с `vmfiles/` и `device/` — по той же причине. Они снаряжают
+сам Jetson как arm64-узел для сборки VMFILE-слоёв bisquite (`bs image
+build`), а это забота bisquite, не образов. Переехали в bisquite как
+`tools/arm64-builder/provision.sh` и `tools/arm64-builder/cleanup.sh`.
+
+Там системные зависимости, Python 3.14 и venv уже даёт одна цель
+`make dev-uv`; эти скрипты добавляют то, чего она не делает: починку
+supermin под ядро L4T (ядро Ubuntu распаковывается `dpkg -x`, никогда
+`apt install` — его постинст переписал бы `extlinux.conf`), проверку
+членства в группе `kvm` и настройку источника расширений. Подробности —
+в самом bisquite.
+
+## Nano пока не поддерживается
+
+Этот репозиторий Jetson Nano не собирает, и это не недосмотр. Развёрнутого
+дерева BSP L4T R32 для Nano нет; пакет загрузчика для него не измерен;
+у R32 `jetson-disk-image-creator.sh` другой интерфейс — нет `-d`, а `-r`
+(ревизия) обязателен, и профиль пары сюда просто так не ляжет. Парк Nano
+сейчас работает на образе Q-engineering (focal) — эта цепочка не отсюда,
+она уже в bisquite, `examples/build/jetson/nano/`.
+
 ## Быстрый старт
 
 ```bash
