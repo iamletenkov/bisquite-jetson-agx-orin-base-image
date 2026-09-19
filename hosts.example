@@ -1,0 +1,4 @@
+# Парк Jetson для tools/fleet-firmware.sh report. Копия без .example — вне git.
+nano@192.168.2.141
+agx@192.168.2.38
+robot@192.168.202.122
