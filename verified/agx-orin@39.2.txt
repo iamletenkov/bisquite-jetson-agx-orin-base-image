@@ -1,0 +1,9 @@
+pair=agx-orin@39.2
+date=2026-09-19
+bsp=jetson_linux_r39.2.0_aarch64.tbz2
+bsp_sha1=346043847d47793669f3f1d86d8d1a3b50c3dbb6
+creator_branch=ok
+conf=ok
+flash_xml=ok
+creator_dev_flag=да
+verdict=проверено

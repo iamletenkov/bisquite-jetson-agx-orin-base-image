@@ -1,0 +1,9 @@
+pair=agx-orin@36.4.3
+date=2026-09-19
+bsp=Jetson_Linux_r36.4.3_aarch64.tbz2
+bsp_sha1=3eb3c5a19a417313383c3bce297e07274a237e36
+creator_branch=ok
+conf=ok
+flash_xml=ok
+creator_dev_flag=да
+verdict=проверено

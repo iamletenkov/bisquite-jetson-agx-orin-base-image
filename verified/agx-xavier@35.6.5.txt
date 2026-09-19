@@ -1,0 +1,9 @@
+pair=agx-xavier@35.6.5
+date=2026-09-19
+bsp=jetson_linux_r35.6.5_aarch64.tbz2
+bsp_sha1=2057b26447dc500c5c319b901288acbfa28fa65b
+creator_branch=ok
+conf=ok
+flash_xml=ok
+creator_dev_flag=да
+verdict=проверено
