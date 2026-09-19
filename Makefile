@@ -43,17 +43,28 @@ build: check-submodule ## qcow2 + пакет загрузчика + манифе
 
 # DRY_RUN знают только 14 и 07. У 06 и 10 его нет: DRY_RUN=1 там был бы
 # обещанием, которое сценарий не выполнит, — поэтому явный отказ до профиля.
+# Boards whose BOOTLOADER_TOOL is not initrd-flash (Nano) flash only
+# to=bootloader: 06, 07 and 10 are built on l4t_initrd_flash.sh, which R32 for
+# t210 does not have. The storage is written by bisquite (bs device write).
 flash: check-submodule ## to=bootloader|internal|nvme|rootfs — НЕОБРАТИМО (DRY_RUN=1: bootloader, rootfs)
 	@case "$(to):$${DRY_RUN:-0}" in \
 	  internal:1|nvme:1) echo "ОТКАЗ: DRY_RUN поддержан только для to=bootloader и to=rootfs"; exit 1 ;; \
 	esac
 	@case "$(to)" in \
-	  bootloader) $(LOAD) sudo -E bash $(S)/14-flash-bootloader.sh ;; \
-	  internal)   $(LOAD) sudo -E bash $(S)/10-flash-internal.sh --target emmc ;; \
-	  nvme)       $(LOAD) sudo -E bash $(S)/06-flash.sh ;; \
-	  rootfs)     $(LOAD) sudo -E bash $(S)/07-flash-rootfs-ssh.sh ;; \
+	  bootloader|internal|nvme|rootfs) ;; \
 	  *) echo "ОТКАЗ: нужно to=bootloader|internal|nvme|rootfs, получено '$(to)'"; exit 1 ;; \
 	esac
+	@$(LOAD) { \
+	  if [ "$(to)" != bootloader ] && [ "$$BOOTLOADER_TOOL" != initrd-flash ]; then \
+	    echo "ОТКАЗ: у $(jetson) только to=bootloader ($$BOOTLOADER_TOOL): носитель пишет bisquite — bs device write"; exit 1; \
+	  fi; \
+	  case "$(to)" in \
+	    bootloader) sudo -E bash $(S)/14-flash-bootloader.sh ;; \
+	    internal)   sudo -E bash $(S)/10-flash-internal.sh --target emmc ;; \
+	    nvme)       sudo -E bash $(S)/06-flash.sh ;; \
+	    rootfs)     sudo -E bash $(S)/07-flash-rootfs-ssh.sh ;; \
+	  esac; \
+	}
 
 verify: check-submodule ## доказать пару по BSP (тарболл потоком, на диск не кладётся)
 	@$(LOAD) VERIFY_DIR="$(CURDIR)/verified" bash $(S)/15-verify-pair.sh

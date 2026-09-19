@@ -33,7 +33,7 @@ says   "list печатает платы"              "agx-orin"               
 mt="$(mktemp -d)"; trap 'rm -rf -- "$mt"' EXIT
 mkdir -p "$mt/s" "$mt/bin"
 for f in profile.sh boards releases pairs; do ln -s "$PWD/scripts/$f" "$mt/s/$f"; done
-for f in 06-flash.sh 07-flash-rootfs-ssh.sh 09-build-jetson-base.sh 10-flash-internal.sh; do
+for f in 06-flash.sh 07-flash-rootfs-ssh.sh 09-build-jetson-base.sh 10-flash-internal.sh 14-flash-bootloader.sh; do
   printf '#!/bin/sh\necho "ЗАПУЩЕН %s DRY_RUN=${DRY_RUN:-} WORK=$WORK OUT_RAW=$OUT_RAW OUT_QCOW2=$OUT_QCOW2"\n' "$f" > "$mt/s/$f"
 done
 printf '#!/bin/sh\n[ "$1" = -E ] && shift\nexec "$@"\n' > "$mt/bin/sudo"; chmod +x "$mt/bin/sudo"
@@ -54,6 +54,19 @@ env_of_09() { stubbed WORK=/elsewhere OUT_RAW=/elsewhere/raw.img OUT_QCOW2=/else
 says   "унаследованный WORK не доезжает" "WORK=/srv/l4t/agx-xavier@35.6.5 " env_of_09
 says   "…и OUT_RAW тоже"                 "OUT_RAW=/srv/l4t/agx-xavier@35.6.5/system.img" env_of_09
 says   "…и OUT_QCOW2 тоже"               "OUT_QCOW2=$mt/out/agx-xavier-35.6.5/system.qcow2" env_of_09
+
+# Nano (BOOTLOADER_TOOL=nvmassflashgen): 06/07/10 are built on
+# l4t_initrd_flash.sh, which R32 for t210 does not have — only to=bootloader.
+says   "nano@32.7.4: build зовёт шаг 09"      "09-build-jetson-base.sh"   make -n build jetson=nano l4t=32.7.4
+says   "orin на 32.7.4 — несовместимо"        "не поддерживает"           make -s build jetson=agx-orin l4t=32.7.4
+says   "nano на 35.6.5 — несовместимо"        "не поддерживает"           make -s build jetson=nano l4t=35.6.5
+says   "nano: to=nvme — отказ"                "только to=bootloader"      stubbed make -s flash jetson=nano l4t=32.7.4 to=nvme
+says   "nano: to=internal — отказ"            "только to=bootloader"      stubbed make -s flash jetson=nano l4t=32.7.4 to=internal
+fails_ "nano: to=rootfs — отказ, а не успех"  stubbed make -s flash jetson=nano l4t=32.7.4 to=rootfs
+nano_nvme_ran() { local out; out="$(stubbed make -s flash jetson=nano l4t=32.7.4 to=nvme 2>&1)"; printf '%s\n' "$out" | grep -q ЗАПУЩЕН; }
+fails_ "…и 06 не запускается"                 nano_nvme_ran
+says   "nano: to=bootloader доходит до 14"    "ЗАПУЩЕН 14-flash-bootloader.sh" stubbed make -s flash jetson=nano l4t=32.7.4 to=bootloader
+says   "orin: to=nvme по-прежнему доходит до 06" "ЗАПУЩЕН 06-flash.sh"   stubbed make -s flash jetson=agx-orin l4t=36.4.3 to=nvme
 
 echo "проверок: $total, не прошло: $fails"
 [ "$fails" -eq 0 ]
