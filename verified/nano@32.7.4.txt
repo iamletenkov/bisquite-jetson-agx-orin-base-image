@@ -1,0 +1,11 @@
+pair=nano@32.7.4
+date=2026-09-19
+bsp=Jetson-210_Linux_R32.7.4_aarch64.tbz2
+bsp_sha1=66ba218a9a60373dbbf00e5724fb66e40d1f527c
+bootloader_tool=nvmassflashgen
+conf=ok
+qspi_xml=ok
+qspi_only=ok
+rootfs_source=vendor-image
+vendor_img_sha256=2e74215dd7d36bcbe91175c2e69399492c5b493bcfecdd0a7300c6dfa3d45fd8
+verdict=проверено
