@@ -36,6 +36,14 @@ done
 printf '#!/bin/sh\n[ "$1" = -E ] && shift\nexec "$@"\n' > "$mt/bin/sudo"; chmod +x "$mt/bin/sudo"
 stubbed() { env PATH="$mt/bin:$PATH" "$@" S="$mt/s" OUT="$mt/out" </dev/null; }
 
+says   "DRY_RUN с to=nvme — отказ"      "DRY_RUN поддержан только"  stubbed DRY_RUN=1 make -s flash jetson=agx-xavier l4t=35.6.5 to=nvme
+says   "DRY_RUN с to=internal — отказ"  "DRY_RUN поддержан только"  stubbed make -s flash jetson=agx-xavier l4t=35.6.5 to=internal DRY_RUN=1
+fails_ "…и это отказ, а не успех"       stubbed DRY_RUN=1 make -s flash jetson=agx-xavier l4t=35.6.5 to=nvme
+nvme_dry() { stubbed DRY_RUN=1 make -s flash jetson=agx-xavier l4t=35.6.5 to=nvme; }
+nvme_dry_ran() { local out; out="$(nvme_dry 2>&1)"; printf '%s\n' "$out" | grep -q ЗАПУЩЕН; }
+fails_ "…и 06 не запускается"           nvme_dry_ran
+says   "DRY_RUN с to=rootfs доходит до 07 с DRY_RUN=1" "ЗАПУЩЕН 07-flash-rootfs-ssh.sh DRY_RUN=1" stubbed DRY_RUN=1 make -s flash jetson=agx-xavier l4t=35.6.5 to=rootfs
+
 # Унаследованные WORK/OUT_RAW/OUT_QCOW2 (оболочка станции от прежнего
 # порядка работы) не должны доехать до сценария.
 env_of_09() { stubbed WORK=/elsewhere OUT_RAW=/elsewhere/raw.img OUT_QCOW2=/elsewhere/x.qcow2 \

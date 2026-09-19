@@ -41,7 +41,12 @@ list: check-submodule ## объявленные платы и релизы
 build: check-submodule ## qcow2 + пакет загрузчика + манифест в out/<плата>-<релиз>/
 	@$(LOAD) sudo -E bash $(S)/09-build-jetson-base.sh $(if $(fresh),--fresh)
 
-flash: check-submodule ## to=bootloader|internal|nvme|rootfs — НЕОБРАТИМО
+# DRY_RUN знают только 14 и 07. У 06 и 10 его нет: DRY_RUN=1 там был бы
+# обещанием, которое сценарий не выполнит, — поэтому явный отказ до профиля.
+flash: check-submodule ## to=bootloader|internal|nvme|rootfs — НЕОБРАТИМО (DRY_RUN=1: bootloader, rootfs)
+	@case "$(to):$${DRY_RUN:-0}" in \
+	  internal:1|nvme:1) echo "ОТКАЗ: DRY_RUN поддержан только для to=bootloader и to=rootfs"; exit 1 ;; \
+	esac
 	@case "$(to)" in \
 	  bootloader) $(LOAD) sudo -E bash $(S)/14-flash-bootloader.sh ;; \
 	  internal)   $(LOAD) sudo -E bash $(S)/10-flash-internal.sh --target emmc ;; \
