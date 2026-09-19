@@ -39,7 +39,7 @@ list: check-submodule ## объявленные платы и релизы
 	@. $(S)/profile.sh && _profile_list
 
 build: check-submodule ## qcow2 + пакет загрузчика + манифест в out/<плата>-<релиз>/
-	@$(LOAD) sudo -E bash $(S)/09-build-jetson-base.sh $(if $(fresh),--fresh)
+	@$(LOAD) sudo -E bash $(S)/09-build-jetson-base.sh $(if $(filter 1,$(fresh)),--fresh)
 
 # DRY_RUN знают только 14 и 07. У 06 и 10 его нет: DRY_RUN=1 там был бы
 # обещанием, которое сценарий не выполнит, — поэтому явный отказ до профиля.

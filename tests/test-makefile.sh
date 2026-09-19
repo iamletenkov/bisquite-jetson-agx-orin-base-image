@@ -21,6 +21,9 @@ says   "xavier на 36.4.3 — несовместимо"  "не поддержи
 says   "flash без to="                    "to=bootloader"      make -s flash jetson=agx-xavier l4t=35.6.5
 says   "build зовёт шаг 09"               "09-build-jetson-base.sh"   make -n build jetson=agx-xavier l4t=35.6.5
 says   "fresh=1 превращается в --fresh"   "--fresh"                   make -n build jetson=agx-xavier l4t=35.6.5 fresh=1
+lacks() { local n="$1" pat="$2" out; shift 2; out="$("$@" 2>&1)"; if printf '%s\n' "$out" | grep -q -- "$pat"; then bad "$n"; else ok "$n"; fi; }
+lacks  "fresh=0 дерево не сносит"         "--fresh"                   make -n build jetson=agx-xavier l4t=35.6.5 fresh=0
+lacks  "fresh= пустое — тоже"             "--fresh"                   make -n build jetson=agx-xavier l4t=35.6.5 fresh=
 says   "результат в out/<плата>-<релиз>"  "out/agx-xavier-35.6.5"     make -n build jetson=agx-xavier l4t=35.6.5
 says   "to=bootloader зовёт шаг 14"       "14-flash-bootloader.sh"    make -n flash jetson=agx-xavier l4t=35.6.5 to=bootloader
 says   "list печатает платы"              "agx-orin"                  make -s list
