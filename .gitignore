@@ -11,3 +11,4 @@ secrets/
 *.qcow2
 *.raw
 *.log
+out/
